@@ -137,7 +137,7 @@ public class BuildCommand {
 
             ret += params[i] + " ";
         }
-        return ret;
+        return ret.trim();
     }
 
 }
