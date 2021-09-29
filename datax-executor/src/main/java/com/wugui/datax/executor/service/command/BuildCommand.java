@@ -67,6 +67,8 @@ public class BuildCommand {
                 if (doc.length() > 0) doc.append(SPLIT_SPACE);
                 String replaceParamType = tgParam.getReplaceParamType();
 
+                replaceParam = buildSplitParams(replaceParam, tgParam.getStartTime());
+
                 if (StringUtils.isBlank(replaceParamType) || replaceParamType.equals("Timestamp")) {
                     long startTime = tgParam.getStartTime().getTime() / 1000;
                     long endTime = tgParam.getTriggerTime().getTime() / 1000;
@@ -116,6 +118,26 @@ public class BuildCommand {
         String timeFormat = partitionInfo.get(2);
         String partitionTime = DateUtil.format(DateUtil.addDays(new Date(), timeOffset), timeFormat);
         return field + Constants.EQUAL + partitionTime;
+    }
+
+    private static String buildSplitParams(String content, Date date) {
+        String[] params = content.split(" ");
+
+        String ret = "";
+        for (int i = 0; i < params.length; i++) {
+            String param = params[i];
+            String[] kv = param.split("=");
+            if (kv[0].startsWith("-Dsplit")) {
+                String formatString = kv[1];
+                SimpleDateFormat sf = new SimpleDateFormat(formatString);
+                String value = sf.format(date);
+                value = value.replaceAll("%", "");
+                params[i] = kv[0] + "=" + value;
+            }
+
+            ret += params[i] + " ";
+        }
+        return ret;
     }
 
 }
