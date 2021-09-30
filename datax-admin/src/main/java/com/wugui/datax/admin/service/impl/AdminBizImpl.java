@@ -16,6 +16,7 @@ import com.wugui.datax.admin.entity.JobLog;
 import com.wugui.datax.admin.mapper.JobInfoMapper;
 import com.wugui.datax.admin.mapper.JobLogMapper;
 import com.wugui.datax.admin.mapper.JobRegistryMapper;
+import com.wugui.datax.admin.util.ParamsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -85,7 +86,7 @@ public class AdminBizImpl implements AdminBiz {
 
             JobInfo jobInfo = jobInfoMapper.loadById(log.getJobId());
 
-            updateIncrementParam(log, jobInfo.getIncrementType());
+            updateIncrementParam(log, jobInfo.getIncrementType(), jobInfo);
 
             if (jobInfo != null && jobInfo.getChildJobId() != null && jobInfo.getChildJobId().trim().length() > 0) {
                 callbackMsg = "<br><br><span style=\"color:#00c0ef;\" > >>>>>>>>>>>" + I18nUtil.getString("jobconf_trigger_child_run") + "<<<<<<<<<<< </span><br>";
@@ -148,11 +149,23 @@ public class AdminBizImpl implements AdminBiz {
         return ReturnT.SUCCESS;
     }
 
-    private void updateIncrementParam(JobLog log, Integer incrementType) {
+    /**
+     * 这个地方 如果incrementType=time要根据step的设置 如果没有设置step，lastTime 设置成 getTriggerTime,否则设置成 根据step计算出来的值
+     * @param log
+     * @param incrementType
+     */
+    private void updateIncrementParam(JobLog log, Integer incrementType, JobInfo jobInfo) {
         if (IncrementTypeEnum.ID.getCode() == incrementType) {
             jobInfoMapper.incrementIdUpdate(log.getJobId(),log.getMaxId());
         } else if (IncrementTypeEnum.TIME.getCode() == incrementType) {
-            jobInfoMapper.incrementTimeUpdate(log.getJobId(), log.getTriggerTime());
+            // step 处理
+            Date incStartTime = log.getTriggerTime();
+            Date startTime = jobInfo.getIncStartTime();
+            long step = ParamsUtil.getStepByParams(jobInfo.getReplaceParam());
+
+            incStartTime = ParamsUtil.getEndTime(startTime, step, incStartTime);
+
+            jobInfoMapper.incrementTimeUpdate(log.getJobId(), incStartTime);
         }
     }
 
